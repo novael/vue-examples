@@ -1,0 +1,4 @@
+{
+  "/teams/:id": "/teams?teamId=:id",
+  "/players/:id": "/players?personId=:id"
+}
