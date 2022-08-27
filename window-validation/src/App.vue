@@ -1,23 +1,38 @@
 <template>
   <v-app>
     <v-main>
-      <v-card class="mx-auto" max-width="500">
+      <v-card class="mx-auto mt-10" max-width="500">
         <v-card-title class="text-h6 font-weight-regular justify-space-between">
           <span class="mr-4">{{ currentTitle }}</span>
           <v-avatar color="primary" size="24" v-text="step"></v-avatar>
-          <v-sheet v-if="!form1Valid || !form2Valid" color="red" class="pl-2">Form has validation errors</v-sheet>
         </v-card-title>
-
+        <v-alert :type="validationType" v-if="!!validationMsg">
+          {{ validationMsg }}
+        </v-alert>
         <v-window v-model="step">
           <v-window-item :value="1">
             <v-card-text>
-              <v-form 
-                ref="form1" 
-                :model-value="form1Valid"
-              >
+              <v-form :ref="(f) => formRefs[0] = f">
                 <v-text-field 
+                  v-model="account.firstName"
+                  label="First Name *"
+                  density="compact"
+                  variant="outlined"
+                  :rules="[required]"
+                ></v-text-field>
+                <v-text-field 
+                  v-model="account.lastName"
+                  label="Last Name *"
+                  density="compact"
+                  variant="outlined"
+                  :rules="[required]"
+                ></v-text-field>
+                <v-text-field 
+                  v-model="account.email"
                   label="Email *"
-                  :rules="[rules.required, rules.email]"
+                  density="compact"
+                  variant="outlined"
+                  :rules="[required, email]"
                 ></v-text-field>
               </v-form>
             </v-card-text>
@@ -25,17 +40,22 @@
 
           <v-window-item :value="2">
             <v-card-text>
-              <v-form 
-                ref="form2" 
-                :model-value="form2Valid"
-              >
+              <v-form :ref="(f) => formRefs[1] = f">
                 <v-text-field 
-                  label="Password" 
+                  v-model="account.password"
+                  label="Password *" 
                   type="password"
+                  density="compact"
+                  variant="outlined"
+                  :rules="[required]"
                 ></v-text-field>
                 <v-text-field 
-                  label="Confirm Password" 
+                  v-model="account.confirmPassword"
+                  label="Confirm Password *" 
                   type="password"
+                  density="compact"
+                  variant="outlined"
+                  :rules="[required, passwordMatch(account.password)]"
                 ></v-text-field>
               </v-form>
             </v-card-text>
@@ -66,9 +86,11 @@
             Back
           </v-btn>
           <v-spacer></v-spacer>
-          <v-btn v-if="step < 3" color="primary" depressed @click="step++">
-            Next
-          </v-btn>
+          <v-btn 
+            v-if="step < 3" 
+            color="primary" 
+            @click="validateStep"
+          >Next</v-btn>
           <v-btn 
             v-if="step == 3" 
             color="success" 
@@ -82,8 +104,23 @@
 
 <script setup>
   import { ref, computed } from 'vue';
+  import { required, passwordMatch, email } from './rules.js'
 
+  /** Refs ***************************/
   const step = ref(1);
+  const formRefs = ref([]); /* Pattern to hold a list of template refs */
+  const account = ref({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  })
+  const validationType = ref("");
+  const validationMsg = ref("");
+  /** End Refs **********************/
+
+  /** Computed refs ********************/
   const currentTitle = computed(() => {
     switch(step) {
       case 1: return 'Sign-up'
@@ -91,28 +128,41 @@
       default: return 'Account created'
     }
   });
+  /** End Computed refs *****************/
 
-  const form1 = ref(null)
-  const form2 = ref(null)
-  const form1Valid = ref(true)
-  const form2Valid = ref(true)
+  /** Lifecycle hooks */
 
-  /* Move to separate file */
-  const rules = ref({
-    required: v => !!v || 'This field is required',
-    email: v => {
-      const pattern = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-          
-      return pattern.test(v) || 'Invalid e-mail.'
-    }
-  })
+  /** Methods ***************************/
+  const validateStep = async () => {
+    const formRef = formRefs.value[step.value - 1];
+    const result = await formRef.validate();
 
-  const validate = async () => {
-    const form1ValidationResult = await form1.value.validate();
-    const form2ValidationResult = await form2.value.validate();
-
-    form1Valid.value = form1ValidationResult.valid;
-    form2Valid.value = form2ValidationResult.valid;
+    //increment step if valid
+    result.valid && step.value++;
   }
 
+  const validate = async () => {
+
+    const results = [];
+
+    /* This is how you iterate over an async iterable */
+    for await (const formRef of formRefs.value) {
+      const result = await formRef.validate();
+      results.push(result)
+    }
+
+    const isValid = results.every(b => b);
+    validationType.value = isValid ? 'success' : 'error';
+    validationMsg.value = isValid ? "Form successfully completed" : "The form has errors"
+
+    isValid && console.log(account.value)
+  }
+  /** End Methods **************************/
+
 </script>
+
+<style scoped>
+  .v-input {
+    margin-bottom: 12px;
+  }
+</style>

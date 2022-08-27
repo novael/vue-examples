@@ -6,17 +6,22 @@
           <v-card-title>Select Demo</v-card-title>
           <v-divider></v-divider>
           <v-card-text>
-            <v-select
-              label="NBA Teams"
-              v-model="team"
-              :items="items"
-              item-title="fullName"
-              :no-data-text="isLoading ? 'Loading...' : 'No Data Found'"
-              :menu-props="menuProps"
-              @update:menu="onMenuOpen"
-              clearable
-              return-object
-            ></v-select>
+            <v-form ref="form">
+              <v-select
+                label="NBA Teams *"
+                v-model="team"
+                :items="items"
+                item-title="fullName"
+                :no-data-text="isLoading ? 'Loading...' : 'No Data Found'"
+                :menu-props="menuProps"
+                :rules="[(v) => !!v || 'This field is required']"
+                @update:menu="onMenuOpen"
+                clearable
+                return-object
+              >
+              </v-select>
+            </v-form>
+            <v-btn class="mb-4" @click="validate">Toggle Validation</v-btn>
             <v-divider></v-divider>
             <pre>{{ team }}</pre>
           </v-card-text>
@@ -27,6 +32,7 @@
           <v-card-text>
             <v-autocomplete
               label="NBA Teams"
+              variant="outlined"
               v-model="autocompleteTeam"
               v-model:search="search"
               :items="autoItems"
@@ -48,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import axios from 'axios';
 
 /** Refs */
@@ -60,6 +66,11 @@ const autoItems = ref([]);
 const isLoading = ref(false)
 const isLoadingAuto = ref(false)
 const menuProps = { height: '300' }
+const isValid = ref(true)
+const form = ref()
+const select = ref()
+
+/** Lifecycle Methods */
 
 /** Methods */
 async function onMenuOpen(isOpen) {
@@ -80,6 +91,11 @@ async function getItems() {
   return response.data;
 }
 
+async function validate() {
+  const resp = await form.value.validate();
+  isValid.value = resp.valid;
+}
+
 /** Watchers */
 watch(search, async (val) => {
   if(autoItems.value.length > 0) return;
@@ -89,3 +105,9 @@ watch(search, async (val) => {
   isLoadingAuto.value = false;
 })
 </script>
+
+<style scoped>
+  .error-label {
+    color: rgb(var(--v-theme-error));
+  }
+</style>
