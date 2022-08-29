@@ -39,7 +39,7 @@
               :loading="isLoadingAuto"
               item-title="fullName"
               item-value="teamId"
-              :menu-props="{ height: '300' }"
+              :menu-props="menuProps"
               hide-no-data
               clearable
               return-object
@@ -54,21 +54,20 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 import axios from 'axios';
 
 /** Refs */
 const team = ref(null)
 const autocompleteTeam = ref(null)
 const search = ref(null)
-const items = ref([]);
-const autoItems = ref([]);
+const items = ref([])
+const autoItems = ref([])
 const isLoading = ref(false)
 const isLoadingAuto = ref(false)
 const menuProps = { height: '300' }
 const isValid = ref(true)
 const form = ref()
-const select = ref()
 
 /** Lifecycle Methods */
 
@@ -80,7 +79,6 @@ async function onMenuOpen(isOpen) {
     isLoading.value = false;
   }
   else {
-
     items.value = await getItems();
     isLoading.value = false;
   }
