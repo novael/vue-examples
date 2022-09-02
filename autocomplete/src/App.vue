@@ -31,21 +31,23 @@
           <v-divider></v-divider>
           <v-card-text>
             <v-autocomplete
-              label="NBA Teams"
+              label="NBA Players"
               variant="outlined"
-              v-model="autocompleteTeam"
+              v-model="player"
               v-model:search="search"
               :items="autoItems"
               :loading="isLoadingAuto"
-              item-title="fullName"
-              item-value="teamId"
+              item-title="temporaryDisplayName"
+              item-value="personId"
               :menu-props="menuProps"
+              @update:search="onSearchUpdate"
               hide-no-data
               clearable
               return-object
-            ></v-autocomplete>
+            >
+            </v-autocomplete>
             <v-divider></v-divider>
-            <pre>{{ autocompleteTeam }}</pre>
+            <pre>{{ player }}</pre>
           </v-card-text>
         </v-card>
       </v-container>
@@ -59,7 +61,7 @@ import axios from 'axios';
 
 /** Refs */
 const team = ref(null)
-const autocompleteTeam = ref(null)
+const player = ref(null)
 const search = ref(null)
 const items = ref([])
 const autoItems = ref([])
@@ -94,12 +96,49 @@ async function validate() {
   isValid.value = resp.valid;
 }
 
-/** Watchers */
-watch(search, async (val) => {
-  if(autoItems.value.length > 0) return;
-  if(isLoadingAuto.value) return;
+async function queryPlayers(query) {
+  const response = await axios.get(`http://localhost:3000/players?temporaryDisplayName_like=${query}`);
+  autoItems.value = response.data;
+}
 
-  autoItems.value = await getItems();
+function onSearchUpdate(data) {
+  if(!data) autoItems.value = [];
+}
+
+function _throttle(func, wait = 100) {
+  let timer = null;
+  return function(...args) {
+    if(timer == null) {
+      timer = setTimeout(() => {
+        func.apply(this, args);
+        timer = null;
+      }, wait)
+    }
+  }
+}
+
+function _debounce(func, wait = 100) {
+  let timer = null;
+  return (...args) => {
+    window.clearTimeout(timer);
+
+    timer = window.setTimeout(() => {
+      func.apply(null, args);
+    }, wait);
+  }
+}
+
+/** Watchers */
+// watch(search, async (val) => {
+//   if(autoItems.value.length > 0) return;
+//   if(isLoadingAuto.value) return;
+
+//   autoItems.value = await getItems();
+//   isLoadingAuto.value = false;
+// })
+watch(search, (val) => {
+  isLoadingAuto.value = true;
+  val && val.length > 2 && queryPlayers(val)
   isLoadingAuto.value = false;
 })
 </script>
