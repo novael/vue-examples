@@ -29,17 +29,17 @@
       </tr>
     </tbody>
   </v-table>
-  <footer class="d-flex pl-4 pt-4 text-body-2 align-center">
-    <div v-if="selectRowsPerPage">
+  <footer class="d-flex pl-4 pt-4 text-body-2 align-center" v-if="pagination">
+    <div>
       <span>Rows per page</span>
-      <div class="count-selector">{{ rowsPerPage }}
+      <div class="count-selector">{{ pageSize }}
         <v-icon>mdi-chevron-down</v-icon>
         <v-menu activator="parent">
           <v-list>
             <v-list-item 
-              v-for="it in rowCountOptions" 
+              v-for="it in itemsPerPage" 
               :value="it"
-              @click="setRowsPerPage(it)"
+              @click="setPageSize(it)"
             >
             {{ it }}
             </v-list-item>
@@ -48,7 +48,7 @@
       </div>
     </div>
     <v-spacer></v-spacer>
-    <div class="pagination" v-if="pagination">
+    <div class="pagination">
       <span class="mr-8">Page {{ currentPage }} of {{ pageCount }}</span>
       <v-btn 
         @click="prevPage"
@@ -70,45 +70,53 @@
 </template>
 
 <script setup>
-  import { ref, computed } from 'vue'
+  import { ref, computed, watch } from 'vue'
   import { useSort } from './sort.js'
 
   const { DIR, sortDir, sortBy, setSort, getSortFn } = useSort();
+
+  const emit = defineEmits(["update:pageChange"]);
 
   const props = defineProps({
     title: { type: String, required: true },
     menu: Array,
     columns: { type: Array, required: true },
     rows:  { type: Array, required: true },
-    selectRowsPerPage: Boolean,
-    pagination: Boolean
+    pagination: [Boolean, String],
+    itemsPerPage: { type: Array, default: [10,25,50] },
+    total: { type: Number }
   });
 
-  const rowsPerPage = ref(10);
-  const rowCountOptions = [10,25,50];
+  const pageSize = props.pagination ? ref(props.itemsPerPage[0]) : props.rows.length;
   const currentPage = ref(1);
   const pageCount = computed(() => {
-    return Math.ceil(props.rows.length / rowsPerPage.value);
+    return Math.ceil((!!props.total ? props.total : props.rows.length) / pageSize.value);
   })
 
   const filteredRows = computed(() => {
-    const base = rowsPerPage.value * currentPage.value;
-    const start = base - rowsPerPage.value;
-    const end = base < props.rows.length ? base : props.rows.length;
-
-    if(sortDir.value == DIR.ASC) {
-      return [...props.rows]
-        .sort(getSortFn(sortBy.value, DIR.ASC))
-        .slice(start, end)
+    if(props.pagination == true){
+      const base = pageSize.value * currentPage.value;
+      const start = base - pageSize.value;
+      const end = base < props.rows.length ? base : props.rows.length;
+      if(sortDir.value == DIR.ASC) {
+        return [...props.rows]
+          .sort(getSortFn(sortBy.value, DIR.ASC))
+          .slice(start, end)
+      }
+      else if(sortDir.value == DIR.DESC) {
+        return [...props.rows]
+          .sort(getSortFn(sortBy.value, DIR.DESC))
+          .slice(start, end)
+      }
+      else {
+        return props.rows.slice(start, end);
+      }
     }
-    else if(sortDir.value == DIR.DESC) {
-      return [...props.rows]
-        .sort(getSortFn(sortBy.value, DIR.DESC))
-        .slice(start, end)
+    else if(props.pagination == "server") {
+        return props.rows;
     }
     else {
-
-      return props.rows.slice(start, end);
+      return props.rows;
     }
   });
 
@@ -116,18 +124,55 @@
     return sortable ? 'click': null;
   }
 
-  const setRowsPerPage = (val) => {
+  const setPageSize = (val) => {
     currentPage.value = 1; //reset current page
-    rowsPerPage.value = val;
+    pageSize.value = val;
+
+    emit("update:pageChange", { 
+      pageSize: pageSize.value, 
+      page: currentPage.value,
+      sortBy: sortBy.value,
+      sortDir: sortDir.value
+    })
   }
 
   const prevPage = () => {
     if(currentPage.value > 1) currentPage.value--;
+    emit("update:pageChange", { 
+      pageSize: pageSize.value, 
+      page: currentPage.value,
+      sortBy: sortBy.value,
+      sortDir: sortDir.value
+    })
   }
 
   const nextPage = () => {
     if(currentPage.value < pageCount.value) currentPage.value++;
+    emit("update:pageChange", { 
+      pageSize: pageSize.value, 
+      page: currentPage.value,
+      sortBy: sortBy.value,
+      sortDir: sortDir.value
+    })
   }
+
+  watch(sortBy, (val) => {
+    emit("update:pageChange", { 
+      pageSize: pageSize.value, 
+      page: currentPage.value,
+      sortBy: sortBy.value,
+      sortDir: sortDir.value
+    })
+  })
+
+  watch(sortDir, (val) => {
+    emit("update:pageChange", { 
+      pageSize: pageSize.value, 
+      page: currentPage.value,
+      sortBy: sortBy.value,
+      sortDir: sortDir.value
+    })
+  })
 </script>
 
 <style scoped>
