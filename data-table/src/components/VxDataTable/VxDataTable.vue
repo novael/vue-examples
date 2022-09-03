@@ -1,7 +1,8 @@
 <template>
   <v-toolbar color="white">
-    <v-app-bar-nav-icon class="ml-0" v-if="menu"></v-app-bar-nav-icon>
     <v-toolbar-title>{{ title }}</v-toolbar-title>
+    <v-spacer/>
+    <v-btn icon="mdi-dots-vertical" v-if="menu" />
   </v-toolbar>
   <v-table 
     class="pl-4" 
