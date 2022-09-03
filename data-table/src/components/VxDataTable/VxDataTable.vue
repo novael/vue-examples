@@ -29,48 +29,52 @@
       </tr>
     </tbody>
   </v-table>
-  <footer class="d-flex pl-4 pt-4 text-body-2 align-center" v-if="pagination">
-    <div>
-      <span>Rows per page</span>
-      <div class="count-selector">{{ pageSize }}
-        <v-icon>mdi-chevron-down</v-icon>
-        <v-menu activator="parent">
-          <v-list>
-            <v-list-item 
-              v-for="it in itemsPerPage" 
-              :value="it"
-              @click="setPageSize(it)"
-            >
-            {{ it }}
-            </v-list-item>
-          </v-list>
-        </v-menu>
-      </div>
-    </div>
+  <footer class="d-flex pl-4 pt-4 text-body-2 align-center">
     <v-spacer></v-spacer>
-    <div class="pagination">
-      <span class="mr-8">Page {{ currentPage }} of {{ pageCount }}</span>
-      <v-btn 
-        @click="prevPage"
-        class="mr-4" 
-        :disabled="currentPage == 1"
-        icon="mdi-chevron-left" 
-        size="small" 
-        flat
-      ></v-btn>
-      <v-btn 
-        @click="nextPage"
-        :disabled="currentPage == pageCount"
-        icon="mdi-chevron-right" 
-        size="small" 
-        flat
-      ></v-btn>
+    <div class="d-flex align-center">
+      <div v-if="pagination" class="mr-8">
+        <span>Rows per page</span>
+        <div class="count-selector">{{ pageSize }}
+          <v-icon>mdi-chevron-down</v-icon>
+          <v-menu activator="parent">
+            <v-list>
+              <v-list-item 
+                v-for="it in itemsPerPage" 
+                :value="it"
+                @click="setPageSize(it)"
+              >
+              {{ it }}
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </div>
+      </div>
+      <!-- <span class="mr-8">Page {{ currentPage }} of {{ pageCount }}</span> -->
+      <span :class="{ 'mr-8': pagination }">{{ currentSlice }} of {{ totalItems }}</span>
+      <div class="pagination-buttons" v-if="pagination">
+        <v-btn 
+          @click="prevPage"
+          class="mr-4"
+          :disabled="currentPage == 1"
+          icon="mdi-chevron-left" 
+          size="small" 
+          flat
+        ></v-btn>
+        <v-btn 
+          @click="nextPage"
+          :disabled="currentPage == pageCount"
+          icon="mdi-chevron-right" 
+          size="small" 
+          flat
+        ></v-btn>
+      </div>
     </div>
   </footer>
 </template>
 
 <script setup>
-  import { ref, computed, watch } from 'vue'
+  import { processSlotOutlet } from '@vue/compiler-core';
+import { ref, computed, watch } from 'vue'
   import { useSort } from './sort.js'
 
   const { DIR, sortDir, sortBy, setSort, getSortFn } = useSort();
@@ -89,34 +93,33 @@
 
   const pageSize = props.pagination ? ref(props.itemsPerPage[0]) : props.rows.length;
   const currentPage = ref(1);
+  const currentSlice = ref("0-0");
   const pageCount = computed(() => {
     return Math.ceil((!!props.total ? props.total : props.rows.length) / pageSize.value);
   })
+  const totalItems = computed(() => {
+    return props.total || props.rows.length;
+  })
 
   const filteredRows = computed(() => {
-    if(props.pagination == true){
-      const base = pageSize.value * currentPage.value;
-      const start = base - pageSize.value;
-      const end = base < props.rows.length ? base : props.rows.length;
-      if(sortDir.value == DIR.ASC) {
-        return [...props.rows]
-          .sort(getSortFn(sortBy.value, DIR.ASC))
-          .slice(start, end)
-      }
-      else if(sortDir.value == DIR.DESC) {
-        return [...props.rows]
-          .sort(getSortFn(sortBy.value, DIR.DESC))
-          .slice(start, end)
-      }
-      else {
-        return props.rows.slice(start, end);
-      }
+    const base = pageSize.value * currentPage.value;
+    const start = base - pageSize.value;
+    const end = base < totalItems.value ? base : totalItems.value;
+
+    if(props.pagination == true) {
+      currentSlice.value = getSlice(start + 1, end);
+      return [...props.rows]
+        .sort(getSortFn(sortBy.value, sortDir.value))
+        .slice(start, end);
     }
     else if(props.pagination == "server") {
+        currentSlice.value = getSlice(start + 1, end);
         return props.rows;
     }
     else {
-      return props.rows;
+      currentSlice.value = getSlice(1, totalItems.value);
+      return [...props.rows]
+        .sort(getSortFn(sortBy.value, sortDir.value))
     }
   });
 
@@ -154,6 +157,10 @@
       sortBy: sortBy.value,
       sortDir: sortDir.value
     })
+  }
+
+  const getSlice = (start, end) => {
+    return `${start}-${end}`;
   }
 
   watch(sortBy, (val) => {

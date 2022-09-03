@@ -39,6 +39,8 @@ export function useSort() {
         if(b[field] < a[field]) return -1
         return 0;
       }
+
+      if(dir == DIR.NONE) return 0;
     }
   }
 
