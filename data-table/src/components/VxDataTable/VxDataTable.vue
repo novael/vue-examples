@@ -25,7 +25,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="row in filteredRows">
+      <tr v-for="row in filteredRows" class="vx-data-table-row" @click.stop="onRowClick(row)">
         <td class="pl-0" v-for="col in columns">{{ row[col.value] }}</td>
       </tr>
     </tbody>
@@ -35,7 +35,8 @@
     <div class="d-flex align-center">
       <div v-if="pagination" class="mr-8">
         <span>Rows per page</span>
-        <div class="count-selector">{{ pageSize }}
+        <div class="count-selector">
+          <span>{{ pageSize }}</span>
           <v-icon>mdi-chevron-down</v-icon>
           <v-menu activator="parent">
             <v-list>
@@ -50,7 +51,6 @@
           </v-menu>
         </div>
       </div>
-      <!-- <span class="mr-8">Page {{ currentPage }} of {{ pageCount }}</span> -->
       <span :class="{ 'mr-8': pagination }">{{ currentSlice }} of {{ totalItems }}</span>
       <div class="pagination-buttons" v-if="pagination">
         <v-btn 
@@ -81,7 +81,7 @@
 
   const { DIR, sortDir, sortBy, setSort, getSortFn } = useSort();
 
-  const emit = defineEmits(["update:pageChange"]);
+  const emit = defineEmits(["update:pageChange", "row:click"]);
 
   const props = defineProps({
     title: { type: String, required: true },
@@ -127,6 +127,10 @@
 
   const clickable = (sortable) => {
     return sortable ? 'click': null;
+  }
+
+  const onRowClick = (row) => {
+    emit("row:click", row);
   }
 
   const setPageSize = (val) => {
@@ -222,7 +226,7 @@
     transform: rotate(180deg);
     transition: transform 0.2s linear;
   }
-  .inactive-chevron {
-    color: rgba(0,0,0,0.33);
+  .vx-data-table-row {
+    cursor: pointer;
   }
 </style>

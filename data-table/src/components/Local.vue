@@ -7,8 +7,13 @@
       :columns="columns"
       :rows="teams"
       :items-per-page="[10,25,50]"
+      @row:click="(row) => details = row"
       pagination
     />
+  </v-card>
+  <v-card class="ma-8 pa-4">
+    <v-btn @click="details = ''" class="mb-4" color="primary">Clear</v-btn>
+    <pre>{{ details }}</pre>
   </v-card>
 </template>
 
@@ -17,6 +22,7 @@
   import VxDataTable from './VxDataTable/VxDataTable.vue'
 
   const menuItems = [];
+  const details = ref();
   const columns = [
     { text: "ID", value: "teamId", sortable: true },
     { text: "Name", value: "fullName", sortable: true },
