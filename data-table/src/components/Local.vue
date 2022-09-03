@@ -7,6 +7,7 @@
       :columns="columns"
       :rows="teams"
       :items-per-page="[10,25,50]"
+      pagination
     />
   </v-card>
 </template>

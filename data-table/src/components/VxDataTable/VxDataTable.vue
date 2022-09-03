@@ -2,7 +2,7 @@
   <v-toolbar color="white">
     <v-toolbar-title>{{ title }}</v-toolbar-title>
     <v-spacer/>
-    <v-btn icon="mdi-dots-vertical" v-if="menu" />
+    <v-btn icon="mdi-dots-vertical" v-if="menu" aria-haspopup="true" title="Table Menu" />
   </v-toolbar>
   <v-table 
     class="pl-4" 
@@ -54,6 +54,7 @@
       <span :class="{ 'mr-8': pagination }">{{ currentSlice }} of {{ totalItems }}</span>
       <div class="pagination-buttons" v-if="pagination">
         <v-btn 
+          title="Previous Page"
           @click="prevPage"
           class="mr-4"
           :disabled="currentPage == 1"
@@ -62,6 +63,7 @@
           flat
         ></v-btn>
         <v-btn 
+          title="Next Page"
           @click="nextPage"
           :disabled="currentPage == pageCount"
           icon="mdi-chevron-right" 
@@ -74,8 +76,7 @@
 </template>
 
 <script setup>
-  import { processSlotOutlet } from '@vue/compiler-core';
-import { ref, computed, watch } from 'vue'
+  import { ref, computed, watch } from 'vue'
   import { useSort } from './sort.js'
 
   const { DIR, sortDir, sortBy, setSort, getSortFn } = useSort();
