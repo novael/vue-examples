@@ -8,6 +8,7 @@
       :items-per-page="[10,25,50]"
       :total="totalCount"
       @update:page-change="onPageChange"
+      @update:sort-change="onSortChange"
       pagination="server"
     />
   </v-card>
@@ -26,18 +27,36 @@
     { text: "Division", value: "divName", sortable: true },
   ];
   const teams = ref([]);
+  const page = ref(1)
+  const pageSize = ref(10);
+  const sortBy = ref("");
+  const sortDir = ref("");
 
   const baseUrl = "http://localhost:3000/teams";
   
   onMounted(async () => {
-    const resp = await fetch(`${baseUrl}?_page=1&_limit=10`);
+    const resp = await fetch(`${baseUrl}?_page=${page.value}&_limit=${pageSize.value}`);
     const rowCount = Number(resp.headers.get("X-Total-Count"));
     teams.value = await resp.json();
     totalCount.value = rowCount;
   })
 
   const onPageChange = async (pageData) => {
-    const resp = await fetch(`${baseUrl}?_page=${pageData.page}&_limit=${pageData.pageSize}&_sort=${pageData.sortBy}&_order=${pageData.sortDir}`);
+    page.value = pageData.page;
+    pageSize.value = pageData.pageSize;
+  
+    await fetchData();
+  }
+
+  const onSortChange = async (sortData) => {
+    sortBy.value = sortData.sortBy;
+    sortDir.value = sortData.sortDir;
+
+    await fetchData();
+  }
+
+  const fetchData = async () => {
+    const resp = await fetch(`${baseUrl}?_page=${page.value}&_limit=${pageSize.value}&_sort=${sortBy.value}&_order=${sortDir.value}`);
     const rowCount = Number(resp.headers.get("X-Total-Count"));
     teams.value = await resp.json();
     totalCount.value = rowCount;

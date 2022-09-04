@@ -43,67 +43,25 @@
   </v-table>
   <footer class="d-flex pl-4 pt-4 text-body-2 align-center">
     <v-spacer></v-spacer>
-    <div class="d-flex align-center">
-      <div v-if="pagination" class="mr-8">
-        <span>{{ rowsPerPageMsg }}</span>
-        <div 
-          class="count-selector" 
-          tabindex="0" 
-          :aria-label="rowsPerPageMsg"
-          @keydown.enter="rowsPerPageMenu = !rowsPerPageMenu"
-          aria-haspopup="true"
-          ref="countSelector"
-        >
-          <span role="menuitem">{{ pageSize }}</span>
-          <v-icon>mdi-chevron-down</v-icon>
-          <v-menu activator="parent" v-model="rowsPerPageMenu" @keydown.esc="">
-            <v-list>
-              <v-list-item
-                role="menuitem"
-                v-for="it in itemsPerPage" 
-                :value="it"
-                @click="setPageSize(it)"
-                @keydown.enter="setPageSize(it)"
-                @keydown.up.prevent="($event) => moveFocusInMenu('up', 'v-list-item', $event)"
-                @keydown.down.prevent="($event) => moveFocusInMenu('down', 'v-list-item',$event)"
-              >
-              {{ it }}
-              </v-list-item>
-            </v-list>
-          </v-menu>
-        </div>
-      </div>
-      <span :class="{ 'mr-8': pagination }">{{ currentSlice }} of {{ totalItems }}</span>
-      <div class="pagination-buttons" v-if="pagination">
-        <v-btn 
-          title="Previous Page"
-          @click="prevPage"
-          class="mr-4"
-          :disabled="currentPage == 1"
-          icon="mdi-chevron-left" 
-          size="small" 
-          flat
-        ></v-btn>
-        <v-btn 
-          title="Next Page"
-          @click="nextPage"
-          :disabled="currentPage == pageCount"
-          icon="mdi-chevron-right" 
-          size="small" 
-          flat
-        ></v-btn>
-      </div>
-    </div>
+    <vx-pagination 
+      v-if="pagination"
+      :remote="pagination == 'remote'"
+      :items-per-page="itemsPerPage"
+      :total-items="total"
+      @update:page-change="onPageChange"
+    >
+    </vx-pagination>
   </footer>
 </template>
 
 <script setup>
-  import { ref, computed, watch, nextTick } from 'vue'
+  import { ref, computed, watch } from 'vue'
   import { useSort } from './sort.js'
+  import VxPagination from './VxPagination.vue'
 
   const { DIR, sortDir, sortBy, setSort, getSortFn } = useSort();
 
-  const emit = defineEmits(["update:pageChange", "row:select"]);
+  const emit = defineEmits(["row:select", "update:sortChange", "update:pageChange"])
 
   const props = defineProps({
     title: { type: String, required: true },
@@ -115,36 +73,21 @@
     total: { type: Number }
   });
 
-  const rowsPerPageMsg = "Rows per page";
-  const pageSize = props.pagination ? ref(props.itemsPerPage[0]) : props.rows.length;
-  const currentPage = ref(1);
-  const rowsPerPageMenu = ref(false);
-  const countSelector = ref();
-  const currentSlice = ref("0-0");
-  const pageCount = computed(() => {
-    return Math.ceil((!!props.total ? props.total : props.rows.length) / pageSize.value);
-  })
-  const totalItems = computed(() => {
-    return props.total || props.rows.length;
-  })
+  const slice = ref({
+    start: 0,
+    end: props.itemsPerPage[0]
+  });
 
   const filteredRows = computed(() => {
-    const base = pageSize.value * currentPage.value;
-    const start = base - pageSize.value;
-    const end = base < totalItems.value ? base : totalItems.value;
-
-    if(props.pagination == true) {
-      currentSlice.value = getSlice(start + 1, end);
+    if(props.pagination === true) {
       return [...props.rows]
         .sort(getSortFn(sortBy.value, sortDir.value))
-        .slice(start, end);
+        .slice(slice.value.start, slice.value.end);
     }
-    else if(props.pagination == "server") {
-        currentSlice.value = getSlice(start + 1, end);
+    else if(props.pagination === "server") {
         return props.rows;
     }
     else {
-      currentSlice.value = getSlice(1, totalItems.value);
       return [...props.rows]
         .sort(getSortFn(sortBy.value, sortDir.value))
     }
@@ -154,109 +97,34 @@
     return sortable ? 'click': null;
   }
 
-  const setPageSize = (val) => {
-    currentPage.value = 1; //reset current page
-    pageSize.value = val;
-
-    emit("update:pageChange", { 
-      pageSize: pageSize.value, 
-      page: currentPage.value,
-      sortBy: sortBy.value,
-      sortDir: sortDir.value
-    })
-
-    /* close menu */
-    if(rowsPerPageMenu.value) rowsPerPageMenu.value = false;
-
-    /* return focus to menu activator */
-    nextTick(() => {
-      countSelector.value.focus();
-    })
-  }
-
-  const prevPage = () => {
-    if(currentPage.value > 1) currentPage.value--;
-    emit("update:pageChange", { 
-      pageSize: pageSize.value, 
-      page: currentPage.value,
-      sortBy: sortBy.value,
-      sortDir: sortDir.value
-    })
-  }
-
-  const nextPage = () => {
-    if(currentPage.value < pageCount.value) currentPage.value++;
-    emit("update:pageChange", { 
-      pageSize: pageSize.value, 
-      page: currentPage.value,
-      sortBy: sortBy.value,
-      sortDir: sortDir.value
-    })
-  }
-
-  const moveFocusInMenu = (dir, cssClass, $event) => {
-    const $el = $event.target;
-    const $prev =  (
-      $el.previousSibling && 
-      $el.previousSibling.nodeType == Node.ELEMENT_NODE && 
-      $el.previousSibling.classList.contains(cssClass)
-    ) ? $el.previousSibling : null;
-
-    const $next = (
-      $el.nextSibling && 
-      $el.nextSibling.nodeType == Node.ELEMENT_NODE && 
-      $el.nextSibling.classList.contains(cssClass)
-    ) ? $el.nextSibling : null;
-
-    if(dir == 'up') {
-      if($el && $prev) $prev.focus();
-    }
-    else if(dir == 'down') {
-      if($el && $next) $next.focus();
-    }
-  }
-
-  const getSlice = (start, end) => {
-    return `${start}-${end}`;
+  const onPageChange = (pageInfo) => {
+    slice.value = pageInfo.slice;
+    emit("update:pageChange", {
+      pageSize: pageInfo.pageSize,
+      page: pageInfo.page,
+      slice: pageInfo.slice
+    });
   }
 
   watch(sortBy, (val) => {
-    emit("update:pageChange", { 
-      pageSize: pageSize.value, 
-      page: currentPage.value,
+    emit("update:sortChange", {
       sortBy: sortBy.value,
       sortDir: sortDir.value
     })
   })
 
   watch(sortDir, (val) => { 
-    emit("update:pageChange", { 
-      pageSize: pageSize.value, 
-      page: currentPage.value,
+    emit("update:sortChange", {
       sortBy: sortBy.value,
       sortDir: sortDir.value
     })
   })
 
-  watch(rowsPerPageMenu, (val) => {
-    if(val) {
-      setTimeout(() => {
-        document.querySelector(".v-overlay--active .v-list-item").focus();
-      },300)
-    }
-  })
 </script>
 
 <style scoped>
   footer {
     border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
-  }
-  .count-selector {
-    display: inline-block;
-    cursor: pointer;
-    margin: 0 8px;
-    padding: 2px 4px;
-    border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
   }
   .sortable {
     cursor: pointer;

@@ -2,10 +2,11 @@
   <v-card class="ma-8 pa-4">
     <vx-data-table 
       title="NBA Teams"
-      height="320"
+      height="360"
       :menu="menuItems"
       :columns="columns"
       :rows="teams"
+      :total="totalCount"
       :items-per-page="[10,25,50]"
       @row:select="(row) => details = row"
       pagination
@@ -30,12 +31,14 @@
     { text: "Division", value: "divName", sortable: true },
   ];
   const teams = ref([]);
+  const totalCount = ref(0);
 
   const baseUrl = "http://localhost:3000/teams";
   
   onMounted(async () => {
     const resp = await fetch(`${baseUrl}`);
     teams.value = await resp.json();
+    totalCount.value = teams.value.length;
   })
 </script>
 
