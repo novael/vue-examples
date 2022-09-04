@@ -7,7 +7,7 @@
       :columns="columns"
       :rows="teams"
       :items-per-page="[10,25,50]"
-      @row:click="(row) => details = row"
+      @row:select="(row) => details = row"
       pagination
     />
   </v-card>

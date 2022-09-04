@@ -25,8 +25,19 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="row in filteredRows" class="vx-data-table-row" @click.stop="onRowClick(row)">
-        <td class="pl-0" v-for="col in columns">{{ row[col.value] }}</td>
+      <tr 
+        v-for="row in filteredRows" 
+        class="vx-data-table-row" 
+        @click.stop.prevent="$emit('row:select', row)"
+        @keydown.enter="$emit('row:select', row)"
+        tabindex="0"
+      >
+        <td 
+          class="pl-0" 
+          v-for="col in columns" 
+        >
+          {{ row[col.value] }}
+        </td>
       </tr>
     </tbody>
   </v-table>
@@ -34,16 +45,27 @@
     <v-spacer></v-spacer>
     <div class="d-flex align-center">
       <div v-if="pagination" class="mr-8">
-        <span>Rows per page</span>
-        <div class="count-selector">
-          <span>{{ pageSize }}</span>
+        <span>{{ rowsPerPageMsg }}</span>
+        <div 
+          class="count-selector" 
+          tabindex="0" 
+          :aria-label="rowsPerPageMsg"
+          @keydown.enter="rowsPerPageMenu = !rowsPerPageMenu"
+          aria-haspopup="true"
+          ref="countSelector"
+        >
+          <span role="menuitem">{{ pageSize }}</span>
           <v-icon>mdi-chevron-down</v-icon>
-          <v-menu activator="parent">
+          <v-menu activator="parent" v-model="rowsPerPageMenu" @keydown.esc="">
             <v-list>
-              <v-list-item 
+              <v-list-item
+                role="menuitem"
                 v-for="it in itemsPerPage" 
                 :value="it"
                 @click="setPageSize(it)"
+                @keydown.enter="setPageSize(it)"
+                @keydown.up.prevent="($event) => moveFocusInMenu('up', 'v-list-item', $event)"
+                @keydown.down.prevent="($event) => moveFocusInMenu('down', 'v-list-item',$event)"
               >
               {{ it }}
               </v-list-item>
@@ -76,12 +98,12 @@
 </template>
 
 <script setup>
-  import { ref, computed, watch } from 'vue'
+  import { ref, computed, watch, nextTick } from 'vue'
   import { useSort } from './sort.js'
 
   const { DIR, sortDir, sortBy, setSort, getSortFn } = useSort();
 
-  const emit = defineEmits(["update:pageChange", "row:click"]);
+  const emit = defineEmits(["update:pageChange", "row:select"]);
 
   const props = defineProps({
     title: { type: String, required: true },
@@ -93,8 +115,11 @@
     total: { type: Number }
   });
 
+  const rowsPerPageMsg = "Rows per page";
   const pageSize = props.pagination ? ref(props.itemsPerPage[0]) : props.rows.length;
   const currentPage = ref(1);
+  const rowsPerPageMenu = ref(false);
+  const countSelector = ref();
   const currentSlice = ref("0-0");
   const pageCount = computed(() => {
     return Math.ceil((!!props.total ? props.total : props.rows.length) / pageSize.value);
@@ -129,10 +154,6 @@
     return sortable ? 'click': null;
   }
 
-  const onRowClick = (row) => {
-    emit("row:click", row);
-  }
-
   const setPageSize = (val) => {
     currentPage.value = 1; //reset current page
     pageSize.value = val;
@@ -142,6 +163,14 @@
       page: currentPage.value,
       sortBy: sortBy.value,
       sortDir: sortDir.value
+    })
+
+    /* close menu */
+    if(rowsPerPageMenu.value) rowsPerPageMenu.value = false;
+
+    /* return focus to menu activator */
+    nextTick(() => {
+      countSelector.value.focus();
     })
   }
 
@@ -165,6 +194,28 @@
     })
   }
 
+  const moveFocusInMenu = (dir, cssClass, $event) => {
+    const $el = $event.target;
+    const $prev =  (
+      $el.previousSibling && 
+      $el.previousSibling.nodeType == Node.ELEMENT_NODE && 
+      $el.previousSibling.classList.contains(cssClass)
+    ) ? $el.previousSibling : null;
+
+    const $next = (
+      $el.nextSibling && 
+      $el.nextSibling.nodeType == Node.ELEMENT_NODE && 
+      $el.nextSibling.classList.contains(cssClass)
+    ) ? $el.nextSibling : null;
+
+    if(dir == 'up') {
+      if($el && $prev) $prev.focus();
+    }
+    else if(dir == 'down') {
+      if($el && $next) $next.focus();
+    }
+  }
+
   const getSlice = (start, end) => {
     return `${start}-${end}`;
   }
@@ -178,13 +229,21 @@
     })
   })
 
-  watch(sortDir, (val) => {
+  watch(sortDir, (val) => { 
     emit("update:pageChange", { 
       pageSize: pageSize.value, 
       page: currentPage.value,
       sortBy: sortBy.value,
       sortDir: sortDir.value
     })
+  })
+
+  watch(rowsPerPageMenu, (val) => {
+    if(val) {
+      setTimeout(() => {
+        document.querySelector(".v-overlay--active .v-list-item").focus();
+      },300)
+    }
   })
 </script>
 
@@ -228,5 +287,11 @@
   }
   .vx-data-table-row {
     cursor: pointer;
+  }
+  .vx-data-table-row:focus {
+    background-color: rgba(var(--v-border-color), var(--v-border-opacity));
+  }
+  .vx-data-table-row:focus-visible {
+    outline: none;
   }
 </style>
