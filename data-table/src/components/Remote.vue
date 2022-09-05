@@ -35,10 +35,7 @@
   const baseUrl = "http://localhost:3000/teams";
   
   onMounted(async () => {
-    const resp = await fetch(`${baseUrl}?_page=${page.value}&_limit=${pageSize.value}`);
-    const rowCount = Number(resp.headers.get("X-Total-Count"));
-    teams.value = await resp.json();
-    totalCount.value = rowCount;
+    await fetchData();
   })
 
   const onPageChange = async (pageData) => {
