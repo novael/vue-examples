@@ -2,7 +2,10 @@
   <v-toolbar color="white">
     <v-toolbar-title>{{ title }}</v-toolbar-title>
     <v-spacer/>
-    <v-btn icon="mdi-dots-vertical" v-if="menu" aria-haspopup="true" title="Table Menu" />
+    <v-btn icon aria-haspopup="true" title="Table Menu" v-if="$slots.menu">
+      <v-icon>mdi-dots-vertical</v-icon>
+      <slot name="menu"></slot>
+    </v-btn>
   </v-toolbar>
   <v-table 
     class="pl-4" 
@@ -45,8 +48,8 @@
     <v-spacer></v-spacer>
     <vx-pagination 
       v-if="pagination"
-      :remote="pagination == 'remote'"
-      :items-per-page="itemsPerPage"
+      :remote="pagination.remote"
+      :items-per-page="pagination.itemsPerPage"
       :total-items="total"
       @update:page-change="onPageChange"
     >
@@ -65,32 +68,41 @@
 
   const props = defineProps({
     title: { type: String, required: true },
-    menu: Array,
     columns: { type: Array, required: true },
     rows:  { type: Array, required: true },
-    pagination: [Boolean, String],
-    itemsPerPage: { type: Array, default: [10,25,50] },
+    pagination: [Boolean, String, Object],
     total: { type: Number }
   });
 
-  const slice = ref({
-    start: 0,
-    end: props.itemsPerPage[0]
-  });
-
-  const filteredRows = computed(() => {
-    if(props.pagination === true) {
-      return [...props.rows]
-        .sort(getSortFn(sortBy.value, sortDir.value))
-        .slice(slice.value.start, slice.value.end);
-    }
-    else if(props.pagination === "server") {
-        return props.rows;
+  const pagination = computed(() => {
+    if(!!props.pagination) {
+      return {
+        remote: (
+          props.pagination === "remote" || props.pagination.remote === true
+        ) ? true : false,
+        itemsPerPage: (
+          Array.isArray(props.pagination.itemsPerPage)
+         ) ? props.pagination.itemsPerPage : [10,25,50]
+      }
     }
     else {
-      return [...props.rows]
-        .sort(getSortFn(sortBy.value, sortDir.value))
+      return false;
     }
+  })
+
+  const slice = ref({
+    start: 0,
+    end: pagination.value.itemsPerPage[0]
+  })
+
+  const filteredRows = computed(() => {
+    if(!pagination.value) return [...props.rows].sort(getSortFn(sortBy.value, sortDir.value));
+
+    if(pagination.value.remote) return props.rows;
+
+    return [...props.rows]
+      .sort(getSortFn(sortBy.value, sortDir.value))
+      .slice(slice.value.start, slice.value.end);
   });
 
   const clickable = (sortable) => {

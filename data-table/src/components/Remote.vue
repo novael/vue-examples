@@ -2,14 +2,12 @@
   <v-card class="ma-8 pa-4">
     <vx-data-table 
       title="NBA Teams"
-      :menu="menuItems"
       :columns="columns"
       :rows="teams"
-      :items-per-page="[10,25,50]"
       :total="totalCount"
       @update:page-change="onPageChange"
       @update:sort-change="onSortChange"
-      pagination="server"
+      pagination="remote"
     />
   </v-card>
 </template>
@@ -18,7 +16,6 @@
   import { ref, onMounted } from 'vue'
   import VxDataTable from './VxDataTable/VxDataTable.vue'
 
-  const menuItems = [];
   const totalCount = ref(0);
   const columns = [
     { text: "ID", value: "teamId", sortable: true },
@@ -60,7 +57,3 @@
   }
 
 </script>
-
-<style scoped>
-
-</style>

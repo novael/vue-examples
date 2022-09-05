@@ -21,7 +21,7 @@ describe("Simple VxDataTable Test", () => {
           { column1: 'foo', column2: 'bar' },
           { column1: 'baz', column2: 'boo' },
         ],
-        menu: [],
+        total: 2,
         pagination: true
       }
     })
@@ -42,10 +42,6 @@ describe("Simple VxDataTable Test", () => {
 
   it('should have 2 rows', () => {
     expect(screen.getByText("1-2 of 2")).toBeTruthy();
-  })
-
-  it('should have a menu button', () => {
-    expect(screen.getByTitle(/menu/i)).toBeTruthy();
   })
 
   it('should have a row count selector', () => {

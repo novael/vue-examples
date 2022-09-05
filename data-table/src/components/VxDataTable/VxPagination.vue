@@ -50,11 +50,10 @@
       ></v-btn>
     </div>
   </div>
-
 </template>
 
 <script setup>
-  import { ref, computed, nextTick, watch, onMounted } from 'vue'
+  import { ref, computed, nextTick, watch } from 'vue'
 
   const emit = defineEmits(["update:pageChange"]);
   const props = defineProps({
