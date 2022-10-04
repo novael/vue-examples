@@ -40,8 +40,7 @@
               item-title="temporaryDisplayName"
               item-value="personId"
               :menu-props="menuProps"
-              @update:search="onSearchUpdate"
-              hide-no-data
+              @keydown.enter="onSearchUpdate"
               clearable
               return-object
             >
@@ -101,8 +100,11 @@ async function queryPlayers(query) {
   autoItems.value = response.data;
 }
 
-function onSearchUpdate(data) {
-  if(!data) autoItems.value = [];
+function onSearchUpdate() {
+  // isLoadingAuto.value = true;
+  // val && val.length > 2 && queryPlayers(val)
+  // isLoadingAuto.value = false;
+  queryPlayers(search.value);
 }
 
 function _throttle(func, wait = 100) {
@@ -136,11 +138,11 @@ function _debounce(func, wait = 100) {
 //   autoItems.value = await getItems();
 //   isLoadingAuto.value = false;
 // })
-watch(search, (val) => {
-  isLoadingAuto.value = true;
-  val && val.length > 2 && queryPlayers(val)
-  isLoadingAuto.value = false;
-})
+// watch(search, (val) => {
+//   isLoadingAuto.value = true;
+//   val && val.length > 2 && queryPlayers(val)
+//   isLoadingAuto.value = false;
+// })
 </script>
 
 <style scoped>
